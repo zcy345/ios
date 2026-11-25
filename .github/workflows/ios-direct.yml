@@ -36,7 +36,8 @@ jobs:
           unzip -q ios/build/Airhand.ipa -d "$RUNNER_TEMP/ipa-check"
           app="$RUNNER_TEMP/ipa-check/Payload/Airhand.app"
           /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$app/Info.plist"
-          lipo -verify_arch arm64 "$app/Airhand"
+          lipo "$app/Airhand" -verify_arch arm64
+          lipo "$app/PlugIns/AirhandBroadcast.appex/AirhandBroadcast" -verify_arch arm64
           codesign --verify --strict --deep "$app"
           mv ios/build/Airhand.ipa ios/build/Airhand-Direct-iPhone.ipa
           cd ios/build
