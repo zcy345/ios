@@ -1,0 +1,38 @@
+[package]
+name = "airhand-ios"
+description = "Airhand iOS core: relay link, controller sessions and the host service, exposed to Swift through a C ABI"
+version = "0.4.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+# 独立的 Cargo 工作区（和 android/native、client/src-tauri、web/ 一样），通过路径依赖使用 crates/ 里的库。
+# 由 ios/scripts/build-rust.sh 为真机（aarch64-apple-ios）和模拟器（aarch64-apple-ios-sim）编译成静态库，
+# App 和屏幕广播扩展都链接它。C 头文件在 include/airhand.h。
+[workspace]
+
+[lib]
+name = "airhand_ios"
+# staticlib 给 Xcode 链接；rlib 让 `cargo test` 和 examples 能链接
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+airhand-proto = { path = "../../crates/airhand-proto" }
+airhand-link = { path = "../../crates/airhand-link" }
+airhand-mobile = { path = "../../crates/airhand-mobile" }
+anyhow = "1"
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter", "std"] }
+
+[dev-dependencies]
+# examples/fake_host.rs：在电脑上模拟一台被控端（彩色测试画面，OpenH264 编码），测试 iOS 控制端
+openh264 = "0.9"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = "debuginfo"
+panic = "unwind"

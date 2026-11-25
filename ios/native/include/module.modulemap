@@ -1,0 +1,5 @@
+module AirhandCore {
+    header "airhand.h"
+    link "airhand_ios"
+    export *
+}

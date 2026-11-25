@@ -1,0 +1,8 @@
+# 生成的：xcodegen generate、scripts/build-rust.sh、scripts/build-ipa.sh
+/Airhand.xcodeproj/
+/build/
+/native/target/
+/Airhand/Info.plist
+/Broadcast/Info.plist
+/Airhand/Airhand.entitlements
+/Broadcast/Broadcast.entitlements

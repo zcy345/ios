@@ -1,0 +1,51 @@
+name: Airhand iPhone direct
+
+on:
+  push:
+    branches: ['codex/airhand-ios-direct', 'codex/airhand-ios-direct-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ipa:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare tools
+        run: |
+          xcodebuild -version
+          rustup update stable
+          rustup default stable
+          rustup target add aarch64-apple-ios
+          command -v xcodegen >/dev/null || brew install xcodegen
+      - name: Test direct addresses
+        run: |
+          swiftc ios/Airhand/Core/DirectAddress.swift ios/scripts/test-direct-address.swift -o "$RUNNER_TEMP/test-direct-address"
+          "$RUNNER_TEMP/test-direct-address"
+      - name: Build iPhone IPA
+        run: bash ios/scripts/build-ipa.sh
+      - name: Verify and collect IPA
+        run: |
+          mkdir -p "$RUNNER_TEMP/ipa-check"
+          unzip -tq ios/build/Airhand.ipa
+          unzip -q ios/build/Airhand.ipa -d "$RUNNER_TEMP/ipa-check"
+          app="$RUNNER_TEMP/ipa-check/Payload/Airhand.app"
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$app/Info.plist"
+          lipo -verify_arch arm64 "$app/Airhand"
+          codesign --verify --strict --deep "$app"
+          mv ios/build/Airhand.ipa ios/build/Airhand-Direct-iPhone.ipa
+          cd ios/build
+          shasum -a 256 Airhand-Direct-iPhone.ipa > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Airhand-Direct-iPhone
+          path: |
+            ios/build/Airhand-Direct-iPhone.ipa
+            ios/build/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7

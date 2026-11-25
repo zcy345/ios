@@ -1,0 +1,85 @@
+[package]
+name = "airhand-link"
+description = "Airhand client side of the relay link: QUIC with certificate pinning and reconnects, session streams, UI-independent controller sessions and the host's server connection"
+version = "0.4.0"
+edition = "2024"
+license = "MIT"
+
+# 桌面客户端（client/src-tauri）、网页控制台（web/）和 Android（android/native）共用，不依赖任何 GUI 库。
+# 两者都是独立的 Cargo 工作区；这个库和 airhand-proto 一样属于根目录的工作区（在仓库根目录 cargo test）
+
+[features]
+default = ["client"]
+# 客户端的全部：QUIC 连接、端到端加密（Noise、SPAKE2）、会话、控制端和被控端。
+# 关掉它只剩 wire（从流里读写长度前缀帧）和 udp（收发缓冲区调大了的 UDP socket）：中转服务器就是这样用的（见 server/Cargo.toml），
+# 不用为了读写几帧把 Noise、SPAKE2 这些它用不到的库也编译进去
+client = [
+    "dep:anyhow",
+    "dep:bytes",
+    "dep:curve25519-dalek",
+    "dep:if-addrs",
+    "dep:libc",
+    "dep:quinn",
+    "dep:rand",
+    "dep:rcgen",
+    "dep:ring",
+    "dep:rustls",
+    "dep:serde",
+    "dep:sha2",
+    "dep:snow",
+    "dep:spake2",
+    "tokio/rt",
+    "tokio/macros",
+    "tokio/sync",
+    "tokio/time",
+    "tokio/net",
+]
+# 控制台（界面）和控制端服务之间的 WebSocket 协议：桌面客户端和网页控制台共用（见 src/console.rs）
+console = ["client", "dep:futures-util", "dep:serde_json"]
+# 测试用的钩子（服务器的测试打开，见 server/Cargo.toml）：让一端的 socket 只往中转发包，模拟直连突然断了
+test-hooks = ["client"]
+
+[dependencies]
+# wire、udp 用的（总是有）
+airhand-proto = { path = "../airhand-proto" }
+# 调大 UDP socket 的收发缓冲区；客户端连中转的 socket 开成双栈的（绑定之前关掉 IPV6_V6ONLY，见 src/udp.rs）
+socket2 = "0.6"
+thiserror = "2"
+tokio = { version = "1", features = ["io-util"] }
+tracing = "0.1"
+
+# client 用的
+anyhow = { version = "1", optional = true }
+bytes = { version = "1", optional = true }
+curve25519-dalek = { version = "4", optional = true }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"], optional = true }
+# 直连时枚举活动网卡。两台只靠网线互连的电脑可能用 169.254/16。
+if-addrs = { version = "0.15", features = ["link-local"], optional = true }
+quinn = { version = "0.11", default-features = false, features = ["runtime-tokio", "rustls-ring"], optional = true }
+rand = { version = "0.9", optional = true }
+# 被控端接受直连时用的自签名证书（每次运行生成一张；对面是谁由会话密钥证明，见 src/direct/tls.rs）
+rcgen = { version = "0.14", default-features = false, features = ["ring"], optional = true }
+ring = { version = "0.17", optional = true }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "logging"], optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
+sha2 = { version = "0.10", optional = true }
+# risky-raw-split：取出 Noise 的两把密钥，再派生每条通道、每个方向各自的密钥（见 src/secure.rs）
+snow = { version = "0.10", features = ["risky-raw-split"], optional = true }
+spake2 = { version = "0.4", optional = true }
+
+# 剪贴板里的文件：打开文件时不跟随链接（O_NOFOLLOW，见 src/files/local.rs）
+[target.'cfg(unix)'.dependencies]
+libc = { version = "0.2", optional = true }
+
+[dev-dependencies]
+# rt、macros：#[tokio::test]（只有 wire 的时候也要能跑它的测试）；test-util：测试里让时间跳着走
+# （等 10 秒的确认、30 秒的失联不用真的等）
+tokio = { version = "1", features = ["rt", "macros", "test-util"] }
+serde_json = "1"
+
+# 三边共用的协议样例（界面命令、会话事件……）：只有客户端才有这些
+[[test]]
+name = "protocol"
+path = "tests/protocol.rs"
+required-features = ["client"]

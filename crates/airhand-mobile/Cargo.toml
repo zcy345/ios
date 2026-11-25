@@ -1,0 +1,27 @@
+[package]
+name = "airhand-mobile"
+description = "Airhand mobile core shared by Android (JNI) and iOS (C ABI): controller sessions for a native UI and the network side of a phone host"
+version = "0.4.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+# 手机应用共用的核心（与界面、与 JNI / C ABI 无关）：
+# * android/native：JNI 包装（Kotlin 调用），cargo-ndk 编译成 libairhand_android.so；
+# * ios/native：C ABI 包装（Swift 调用），编译成静态库。
+# 采集、编码、注入输入都在各平台自己那边，这里只管网络、会话、在途控制和码率。
+
+[dependencies]
+airhand-proto = { path = "../airhand-proto" }
+airhand-link = { path = "../airhand-link" }
+anyhow = "1"
+bytes = "1"
+quinn = { version = "0.11", default-features = false, features = ["runtime-tokio", "rustls-ring"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter", "std"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_log-sys = "0.3"
