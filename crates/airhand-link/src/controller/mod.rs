@@ -217,6 +217,7 @@ pub enum Command {
         enabled: bool,
     },
     /// 打开 / 关闭被控端的防窥模式（见模块说明的"防窥模式"）。被控端不支持时什么也不做
+    SuperScreen { sid: u32, mode: Option<airhand_proto::session::ScreenMode> },
     Privacy {
         sid: u32,
         on: bool,
@@ -261,6 +262,7 @@ impl Command {
             | Command::View { sid, .. }
             | Command::Audio { sid, .. }
             | Command::Mic { sid, .. }
+            | Command::SuperScreen { sid, .. }
             | Command::Privacy { sid, .. }
             | Command::Clipboard { sid, .. }
             | Command::ClipboardSync { sid, .. }
@@ -616,6 +618,7 @@ impl ControllerService {
                 (sid, ControllerMsg::View { streams })
             }
             Command::Audio { sid, enabled } => (sid, ControllerMsg::Audio { enabled }),
+            Command::SuperScreen { sid, mode } => (sid, ControllerMsg::SuperScreen { mode }),
             Command::Privacy { sid, on } => (sid, ControllerMsg::Privacy { on }),
             Command::Mic { sid, enabled } => {
                 let sessions = self.inner.sessions.lock().unwrap();

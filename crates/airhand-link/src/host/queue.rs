@@ -75,6 +75,7 @@ impl Place {
             | HostMsg::Direct(_)
             // 麦克风、防窥模式的状态很少变，跟在 Hello 后面按顺序发
             | HostMsg::Mic { .. }
+            | HostMsg::SuperScreen { .. }
             | HostMsg::Privacy { .. }
             | HostMsg::Files(_) => queued(None),
         }

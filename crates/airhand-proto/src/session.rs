@@ -229,6 +229,27 @@ pub enum HostMsg {
         #[n(1)]
         detail: Option<String>,
     },
+    #[n(15)]
+    SuperScreen {
+        #[n(0)] mode: Option<ScreenMode>,
+        #[n(1)] detail: Option<String>,
+    },
+}
+
+/// Requested or observed virtual desktop mode. Dimensions are desktop pixels.
+#[derive(Encode, Decode, Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ScreenMode {
+    #[n(0)] pub width: u32,
+    #[n(1)] pub height: u32,
+    #[n(2)] pub hz: u32,
+    #[n(3)] pub black: bool,
+}
+
+impl ScreenMode {
+    pub fn valid_request(self) -> bool {
+        (320..=8192).contains(&self.width) && (320..=8192).contains(&self.height)
+            && matches!(self.hz, 60 | 90 | 120)
+    }
 }
 
 open_enum! {
@@ -304,6 +325,7 @@ impl HostMsg {
             | HostMsg::Bye(_)
             | HostMsg::Direct(_)
             | HostMsg::Mic { .. }
+            | HostMsg::SuperScreen { .. }
             | HostMsg::Privacy { .. } => SessionLane::Control,
         }
     }
@@ -660,6 +682,8 @@ pub enum ControllerMsg {
         #[n(0)]
         on: bool,
     },
+    #[n(14)]
+    SuperScreen { #[n(0)] mode: Option<ScreenMode> },
 }
 
 impl ControllerMsg {
@@ -676,6 +700,7 @@ impl ControllerMsg {
             | Self::Audio { .. }
             | Self::Direct(_)
             | Self::Mic { .. }
+            | Self::SuperScreen { .. }
             | Self::Privacy { .. } => SessionLane::Control,
         }
     }

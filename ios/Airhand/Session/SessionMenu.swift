@@ -147,6 +147,12 @@ struct SessionMenu: View {
                 NavigationLink { DisplaysPage(session: session) } label: { row("display.2", L.t("menu_displays")) }
             }
             // 防窥模式：对方（Windows、Mac）说了它的状态才有；点开是开关和说明（开不了时写着为什么）
+            if session.superScreenAvailable {
+                Divider().overlay(Theme.stroke).padding(.leading, 50)
+                NavigationLink { SuperScreenPage(session: session) } label: {
+                    row("display", L.t("super_screen"))
+                }
+            }
             if let p = session.privacyState, !session.viewOnly {
                 Divider().overlay(Theme.stroke).padding(.leading, 50)
                 NavigationLink { PrivacyPage(session: session) } label: {
@@ -381,6 +387,52 @@ struct DisplaysPage: View {
 
 /// 防窥模式：对方所有的显示器黑屏、键盘鼠标不起作用，只有控制端看得到、操作得了（和桌面版工具栏的盾牌菜单一样）。
 /// 开关下面写着现在怎么样：正在打开、开着、没能打开的原因、开不了的原因
+private struct SuperScreenPage: View {
+    let session: RemoteSession
+    @State private var preset = 0
+    @State private var rate = 60
+    @State private var black = true
+
+    var body: some View {
+        Form {
+            Picker(L.t("super_size"), selection: $preset) {
+                Text(L.t("super_fit")).tag(0)
+                ForEach([1080, 1440, 2160], id: \.self) { height in
+                    Text(height == 2160 ? "4K" : "\(height)p").tag(height)
+                }
+            }
+            Picker(L.t("super_rate"), selection: $rate) {
+                ForEach([60, 90, 120], id: \.self) { Text("\($0) Hz").tag($0) }
+            }
+            Toggle(L.t("super_black"), isOn: $black)
+            if let m = session.superScreenMode {
+                Text("\(m.int("width") ?? 0) × \(m.int("height") ?? 0) · \(m.int("hz") ?? 0) Hz")
+            }
+            if let error = session.superScreenError { Text(error).foregroundStyle(.red) }
+            Button(L.t("super_apply")) {
+                let bounds = UIScreen.main.bounds
+                let scale = UIScreen.main.nativeScale
+                let size = preset == 0
+                    ? (Int(bounds.width * scale), Int(bounds.height * scale))
+                    : (preset * 16 / 9, preset)
+                session.setSuperScreen(["width": size.0, "height": size.1, "hz": rate, "black": black])
+            }
+            if session.superScreenMode != nil {
+                Button(L.t("super_stop")) { session.setSuperScreen(nil) }
+            }
+        }
+        .onAppear {
+            if let mode = session.superScreenMode {
+                rate = mode.int("hz").flatMap { [60, 90, 120].contains($0) ? $0 : nil } ?? 60
+                black = mode.bool("black")
+                let height = mode.int("height") ?? 0
+                if mode.int("width") == height * 16 / 9, [1080, 1440, 2160].contains(height) { preset = height }
+            }
+        }
+        .navigationTitle(L.t("super_screen"))
+    }
+}
+
 struct PrivacyPage: View {
     let session: RemoteSession
 

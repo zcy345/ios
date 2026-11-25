@@ -153,6 +153,7 @@ pub enum Request {
     Mic(bool),
     /// 打开 / 关闭防窥模式（见 `airhand_proto::session` 的"防窥模式"）。不支持的平台什么也不做
     Privacy(bool),
+    SuperScreen(Option<airhand_proto::session::ScreenMode>),
 }
 
 /// 控制端要看的显示器（[`Request::View`]）落到这台被控端上（`displays` 个显示器，最多同时发 `max` 路）：

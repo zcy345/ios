@@ -208,7 +208,7 @@ impl Platform for Phone {
             // 手机不接控制端的麦克风：没有 Platform::mic，也不发 HostMsg::Mic，控制端不会显示麦克风
             Request::Mic(_) => {}
             // 手机没有防窥模式：不发 HostMsg::Privacy，控制端不会显示这个开关
-            Request::Privacy(_) => {}
+            Request::Privacy(_) | Request::SuperScreen(_) => {}
         }
         Ok(())
     }

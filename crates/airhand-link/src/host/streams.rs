@@ -262,6 +262,7 @@ pub(crate) fn request(m: ControllerMsg) -> Option<Request> {
         ControllerMsg::Clipboard { text } => Request::Clipboard(text),
         ControllerMsg::Audio { enabled } => Request::Audio(enabled),
         ControllerMsg::Mic { enabled } => Request::Mic(enabled),
+        ControllerMsg::SuperScreen { mode } => Request::SuperScreen(mode),
         ControllerMsg::Privacy { on } => Request::Privacy(on),
         // 直连的回答交给直连任务，剪贴板里的文件交给 Files（都在读任务里）
         ControllerMsg::Direct(_) | ControllerMsg::Files(_) => return None,

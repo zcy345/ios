@@ -297,6 +297,7 @@ pub enum SessionEvent {
     },
     /// 被控端的防窥模式（见 [`super`] 的"防窥模式"）：会话开始时一次，之后有变化再来。
     /// 被控端不支持时不会有。`detail`：没能打开时给排查问题用的技术信息（英文）
+    SuperScreen { mode: Option<airhand_proto::session::ScreenMode>, detail: Option<String> },
     Privacy {
         state: PrivacyState,
         detail: Option<String>,
@@ -733,6 +734,7 @@ pub(super) async fn run(
                     };
                     let _ = out.event(SessionEvent::Mic { state, detail });
                 }
+                HostMsg::SuperScreen { mode, detail } => { let _ = out.event(SessionEvent::SuperScreen { mode, detail }); }
                 HostMsg::Privacy { state, detail } => {
                     // 对方版本新增的状态：不知道是什么意思，当作开不了（界面显示开关，但不能打开）
                     let state = if state.is_known() {

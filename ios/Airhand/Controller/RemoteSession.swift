@@ -60,6 +60,9 @@ final class RemoteSession {
     /// 重连的间隙里为 nil：不显示这个开关。整台被控端一个状态，别的控制端打开 / 关掉了这里也跟着变
     private(set) var privacyState: PrivacyState?
     /// 没能打开防窥的原因（英文技术信息，对方给的）
+    private(set) var superScreenAvailable = false
+    private(set) var superScreenMode: JSON?
+    private(set) var superScreenError: String?
     private(set) var privacyDetail: String?
     /// 远端光标（UIKit 的画面直接观察，不经过 SwiftUI）
     @ObservationIgnored var onCursor: ((CursorState) -> Void)?
@@ -219,7 +222,10 @@ final class RemoteSession {
                 sid = -1
                 // 对方还没重新说它的防窥模式（要不要开着留着，重连时告诉它）
                 main {
-                    self.privacyState = nil
+                    self.superScreenAvailable = false
+            self.superScreenMode = nil
+            self.superScreenError = nil
+            self.privacyState = nil
                     self.privacyDetail = nil
                 }
                 decoder.resetStream()
@@ -296,6 +302,9 @@ final class RemoteSession {
             self.micState = nil
             self.micOn = false
             // 防窥模式：对方在 Hello 之后重新说（要不要开着已经在握手里告诉它了）
+            self.superScreenAvailable = false
+            self.superScreenMode = nil
+            self.superScreenError = nil
             self.privacyState = nil
             self.privacyDetail = nil
         }
@@ -463,6 +472,14 @@ final class RemoteSession {
                 self.micState = state
                 if state != "ready" && state != "preparing" && self.micOn { self.setMic(false) }
             }
+        case "superScreen":
+            let mode = e.obj("mode")
+            let detail = e.str("detail")
+            main {
+                self.superScreenAvailable = true
+                self.superScreenMode = mode
+                self.superScreenError = detail
+            }
         case "privacy":
             let state = PrivacyState.fromWire(e.str("state"))
             let detail = e.str("detail")
@@ -572,6 +589,10 @@ final class RemoteSession {
             q.codec = next
             setQuality(q)
         }
+    }
+
+    func setSuperScreen(_ mode: JSON?) {
+        command { sid in ["cmd": "superScreen", "sid": Int(sid), "mode": mode as Any? ?? NSNull()] }
     }
 
     func selectDisplay(_ index: Int) { command { Commands.display($0, index) } }
